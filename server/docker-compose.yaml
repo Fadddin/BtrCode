@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - USER_SERVICE_URL=http://user-service:3001
+      - CONTEST_SERVICE_URL=http://contest-service:3002
+      - PROBLEM_SERVICE_URL=http://problem-service:3003
+    networks:
+      - coding-contest-network
+    depends_on:
+      - user-service
+      - contest-service
+      - problem-service
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+    networks:
+      - coding-contest-network
+
+  contest-service:
+    build: ./contest-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+    networks:
+      - coding-contest-network
+
+  problem-service:
+    build: ./problem-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+    networks:
+      - coding-contest-network
+
+networks:
+  coding-contest-network:
+    driver: bridge
