@@ -23,6 +23,7 @@ services:
       - "3001:3001"
     environment:
       - PORT=3001
+      - MONGO_URI=mongodb+srv://fardinKhan:AyR90RgJ2MOwqZzQ@cluster0.qmu47yh.mongodb.net/btrCode
     networks:
       - coding-contest-network
 

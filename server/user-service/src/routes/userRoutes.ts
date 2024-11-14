@@ -8,6 +8,10 @@ const SALT_ROUNDS = 10;
 
 const router = express.Router();
 
+router.get('/', (req: any, res: any) => {
+  res.send("Users running fine")
+})
+
 // Register route
 router.post("/register", async (req : any, res : any) => {
     try {
