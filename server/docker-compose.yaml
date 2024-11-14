@@ -10,12 +10,15 @@ services:
       - USER_SERVICE_URL=http://user-service:3001
       - CONTEST_SERVICE_URL=http://contest-service:3002
       - PROBLEM_SERVICE_URL=http://problem-service:3003
+      - EXECUTION_SERVICE_URL=http://execution-service:3004
+
     networks:
       - coding-contest-network
     depends_on:
       - user-service
       - contest-service
       - problem-service
+      - execution-service
 
   user-service:
     build: ./user-service
@@ -42,6 +45,15 @@ services:
       - "3003:3003"
     environment:
       - PORT=3003
+    networks:
+      - coding-contest-network
+  
+  execution-service:
+    build: ./execution-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
     networks:
       - coding-contest-network
 

@@ -64,23 +64,31 @@ router.post("/register", async (req : any, res : any) => {
 });
 
 // Login route
-router.post("/login", async (req:any , res:any) => {
-    try {
-        const { email, password } = req.body;
-    
-        const user = await User.findOne({ email });
-        if (!user || !(await user.comparePassword(password))) {
-          return res.status(401).json({ message: "Invalid email or password" });
-        }
-    
-        const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
-          expiresIn: "5h",
-        });
-    
-        return res.json({ message: "Login successful", token });
-      } catch (error) {
-        return res.status(500).json({ error: "Login failed" });
-      }
-})
+router.post("/login", async (req: any, res: any) => {
+  try {
+      const { email, password } = req.body;
 
+      // Find the user by email
+      const user = await User.findOne({ email });
+      if (!user) {
+          return res.status(401).json({ message: "email not found" });
+      }
+      console.log(user)
+      // Compare provided password with hashed password in the database
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      if (!isMatch) {
+          return res.status(401).json({ message: "password not matched" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
+          expiresIn: "5h",
+      });
+
+      return res.json({ message: "Login successful", token });
+  } catch (error) {
+      console.error("Error during login:", error);
+      return res.status(500).json({ error: "Login failed" });
+  }
+});
 export default router;

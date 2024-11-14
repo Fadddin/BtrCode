@@ -16,4 +16,26 @@ router.get("/", async (req: Request, res: Response) => {
 
 // Other user routes go here, such as user creation, login, etc.
 
+router.post("/register", async (req: Request, res: Response) => {
+    try {
+        // Forwarding the request body to the user service
+        const response = await axios.post(`${USER_SERVICE_URL}/register`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        console.error("Error in POST request:", error);
+        res.status(500).send("User Service is unavailable or there was an error processing the request");
+    }
+});
+
+router.post("/login", async (req: Request, res: Response) => {
+    try {
+        // Forwarding the request body to the user service
+        const response = await axios.post(`${USER_SERVICE_URL}/login`, req.body);
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        console.error("Error in POST request:", error);
+        res.status(500).send("User Service is unavailable or there was an error processing the request");
+    }
+});
+
 export default router;
