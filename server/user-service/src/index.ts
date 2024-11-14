@@ -1,14 +1,21 @@
-// src/index.ts
-
-import express, { Request, Response } from "express";
+import express from "express";
+import mongoose from "mongoose";
+import userRoutes from "./routes/userRoutes";
+import dotenv from 'dotenv';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
-app.get("/", (req: Request, res: Response) => {
-    res.send("user is running");
-});
+dotenv.config();
 
-app.listen(PORT, () => {
-    console.log(`user running on port ${PORT}`);
-});
+app.use(express.json());
+
+app.use("/", userRoutes);
+
+mongoose
+  .connect(process.env.MONGO_URI || '')
+  .then(() => {
+    console.log("Connected to MongoDB");
+    app.listen(PORT, () => console.log(`User service running on port ${PORT}`));
+  })
+  .catch((error) => console.error("MongoDB connection error:", error));
