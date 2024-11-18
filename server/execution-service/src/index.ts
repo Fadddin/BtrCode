@@ -1,10 +1,18 @@
 import amqp, { Channel, Message } from "amqplib";
 import Docker from "dockerode";
 import * as stream from "stream";
+import Redis from "ioredis";
+import express from "express";
+
+const app = express();
 
 const docker = new Docker();
 const RABBITMQ_URL = process.env.RABBITMQ_URL || "amqp://localhost";
 const QUEUE_NAME = "submission_que";
+
+const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+const redis = new Redis(REDIS_URL);
+const redisPublisher = new Redis(REDIS_URL);
 
 const results: { [key: string]: string } = {}; 
 
@@ -60,16 +68,17 @@ connectRabbitMQ().then((channel) => {
       if (!message) return;
 
       const submission = JSON.parse(message.content.toString());
-      const { userId, code } = submission;
+      const { userId, code, contestId } = submission;
       console.log(userId);
       
 
       try {
         const result = await executeCodeInContainer(code);
 
-        // Simulate result storage
-        results[userId] = result;
-        console.log("Execution result:", result);
+        // Publish result to Redis Pub/Sub channel
+        const resultChannel = `${userId}:${contestId}`;
+        await redisPublisher.publish(resultChannel, result);
+        console.log("Execution result published:", result);
 
         channel.ack(message);
       } catch (error) {
@@ -80,3 +89,29 @@ connectRabbitMQ().then((channel) => {
     { noAck: false }
   );
 }).catch(console.error);
+
+app.use(express.json());
+
+app.get("/result/:userId/:contestId", async (req, res) => {
+  const { userId, contestId } = req.params;
+
+  try {
+    // Retrieve result from Redis
+    const resultKey = `${userId}:${contestId}`;
+    const result = await redis.get(resultKey);
+
+    if (result) {
+      res.status(200).json({ status: "success", result });
+    } else {
+      res.status(404).json({ status: "error", message: "Result not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ status: "error", message: error });
+  }
+});
+
+app.listen(4000, () => {
+  console.log("Execution API Service running on port 4000");
+});
+
+//function addTwoNumbers(a, b) { return a + b; } const [a, b] = input.split(' ').map(Number); console.log(addTwoNumbers(a, b));

@@ -1,5 +1,5 @@
 {
-  "name": "execution-service",
+  "name": "websocket-service",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -13,23 +13,17 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/axios": "^0.14.4",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
-    "@types/mongoose": "^5.11.97",
-    "amqplib": "^0.10.4",
-    "axios": "^1.7.7",
     "cors": "^2.8.5",
-    "dockerode": "^4.0.2",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
-    "ioredis": "^5.4.1",
-    "mongoose": "^8.8.1",
     "nodemon": "^3.1.7",
-    "redis": "^4.7.0"
+    "redis": "^4.7.0",
+    "websocket": "^1.0.35",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@types/amqplib": "^0.10.5",
-    "@types/dockerode": "^3.3.31"
+    "@types/ws": "^8.5.13"
   }
 }
