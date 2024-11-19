@@ -11,12 +11,13 @@ type submission = {
     userId : string;
     contestId : string;
     code : string;
+    language : string,
     submittedAt : number;
 }
 
 app.use(bodyParser.json());
 
-const RABBITMQ_URL = "amqp://localhost";
+const RABBITMQ_URL = "amqp://localhost:5672";
 const QUEUE_NAME = "submission_que"
 
 async function connectToRabbitMQ() {
@@ -28,9 +29,9 @@ async function connectToRabbitMQ() {
 
 connectToRabbitMQ().then((channel) => {
     app.post('/submit', async(req:Request, res:Response) => {
-        const { userId, contestId , code} = req.body;
+        const { userId, contestId , code , language} = req.body;
 
-        const submission: submission = {userId, contestId, code, submittedAt: Date.now()}
+        const submission: submission = {userId, contestId, code, language, submittedAt: Date.now()}
 
         await channel.sendToQueue(QUEUE_NAME, Buffer.from(JSON.stringify(submission)), {
             persistent: true  // Ensure the message is not lost even if RabbitMQ crashes

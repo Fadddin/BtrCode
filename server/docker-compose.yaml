@@ -11,7 +11,7 @@ services:
       - CONTEST_SERVICE_URL=http://contest-service:3002
       - PROBLEM_SERVICE_URL=http://problem-service:3003
       - EXECUTION_SERVICE_URL=http://execution-service:3004
-
+      - WEBSOCKET_SERVICE_URL=ws://websocket-service:8081
     networks:
       - coding-contest-network
     depends_on:
@@ -19,6 +19,22 @@ services:
       - contest-service
       - problem-service
       - execution-service
+      - websocket-service
+
+  redis:
+    image: "redis:latest"
+    ports:
+      - "6379:6379"
+    networks:
+      - coding-contest-network
+
+  rabbitmq:
+    image: "rabbitmq:management"
+    ports:
+      - "5672:5672"  # RabbitMQ AMQP port for communication
+      - "15672:15672"  # RabbitMQ management UI port
+    networks:
+      - coding-contest-network
 
   user-service:
     build: ./user-service
@@ -45,17 +61,40 @@ services:
       - "3003:3003"
     environment:
       - PORT=3003
+      - RABBITMQ_URL=amqp://rabbitmq:5672
     networks:
       - coding-contest-network
-  
+    depends_on:
+      - rabbitmq
+    
+
   execution-service:
     build: ./execution-service
     ports:
       - "3004:3004"
     environment:
       - PORT=3004
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - REDIS_URL=redis://redis:6379
     networks:
       - coding-contest-network
+    depends_on:
+      - rabbitmq
+      - redis
+
+  websocket-service:
+    build: ./websocket-service
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - coding-contest-network
+    depends_on:
+      - redis
+
+  
 
 networks:
   coding-contest-network:
