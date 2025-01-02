@@ -35,6 +35,11 @@ services:
       - "15672:15672"  # RabbitMQ management UI port
     networks:
       - coding-contest-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
 
   user-service:
     build: ./user-service
@@ -66,7 +71,7 @@ services:
       - coding-contest-network
     depends_on:
       - rabbitmq
-    
+    restart: always
 
   execution-service:
     build: ./execution-service
@@ -93,8 +98,6 @@ services:
       - coding-contest-network
     depends_on:
       - redis
-
-  
 
 networks:
   coding-contest-network:

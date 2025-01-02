@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import mongoose from "mongoose";
 import questionRoutes from "./routes/questionRoutes";
+import contestRoutes from "./routes/contestRoutes";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -22,7 +23,9 @@ mongoose
   });
 
 
-  app.use("/questions", questionRoutes);
+app.use("/questions", questionRoutes);
+app.use("/contest", contestRoutes);
+
 
 app.get("/", (req: Request, res: Response) => {
     res.send("contest is running");
