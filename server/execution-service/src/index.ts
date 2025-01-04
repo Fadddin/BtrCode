@@ -1,8 +1,8 @@
 import amqp, { Channel, Message } from "amqplib";
 import Docker from "dockerode";
-import * as stream from "stream";
 import Redis from "ioredis";
 import express from "express";
+import * as stream from "stream";
 
 const app = express();
 const docker = new Docker();
@@ -12,6 +12,42 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const redis = new Redis(REDIS_URL);
 const redisPublisher = new Redis(REDIS_URL);
 
+// Function Wrapper Template
+const functionWrapperCode = `
+const runUserFunction = (userFunction, testCases) => {
+  const results = [];
+
+  for (const testCase of testCases) {
+    try {
+      let result;
+
+      // Determine if the function expects multiple arguments
+      if (typeof testCase.input === 'object' && Array.isArray(testCase.input)) {
+        if (userFunction.length === testCase.input.length) {
+          // Spread if the number of function parameters matches input length
+          result = userFunction(...testCase.input);
+        } else {
+          // Pass array directly if the function expects one argument
+          result = userFunction(testCase.input);
+        }
+      } else {
+        // Handle single non-array inputs
+        result = userFunction(testCase.input);
+      }
+
+      const pass = JSON.stringify(result) === JSON.stringify(testCase.output);
+      results.push({ input: testCase.input, output: testCase.output, result, pass });
+    } catch (error) {
+      results.push({ input: testCase.input, output: testCase.output, error: error.message });
+    }
+  }
+
+  console.log(JSON.stringify(results, null, 2));
+};
+
+
+`;
+
 // Connect to RabbitMQ
 async function connectRabbitMQ(): Promise<Channel> {
   const connection = await amqp.connect(RABBITMQ_URL);
@@ -20,52 +56,29 @@ async function connectRabbitMQ(): Promise<Channel> {
   return channel;
 }
 
-// Wrap user code to inject test cases dynamically
-// Wrap user code to inject test cases dynamically and check input type
-// Wrap user code to inject test cases dynamically and check input type
-function wrapCodeWithTestCases(code: string, testCases: { input: any[]; output: any }[]): string {
+// Function to generate complete code for execution
+function generateExecutionCode(userFunction: string, testCases: { input: any[]; output: any }[]) {
   return `
-${code}
+    ${functionWrapperCode}
 
-const testCases = ${JSON.stringify(testCases)};
+    // User Function
+    const userFunction = ${userFunction};
 
-let results = [];
+    // Test Cases
+    const testCases = ${JSON.stringify(testCases)};
 
-for (const t of testCases) {
-  try {
-    console.log("Running test case with input:", t.input); // Debugging log
-
-    // Log the type of the input to verify it's an array
-    console.log("Type of input:", typeof t.input); // Should be 'object' for array
-    console.log("Array check:", Array.isArray(t.input)); // Should return true if it's an array
-
-    // Ensure that input is an array before calling .map
-    if (!Array.isArray(t.input)) {
-      throw new Error("Input is not an array");
-    }
-
-    const result = userFunction(...t.input); // Spread input array
-    const pass = JSON.stringify(result) === JSON.stringify(t.output);
-    results.push({ input: t.input, output: t.output, result, pass });
-  } catch (err) {
-    results.push({ input: t.input, output: t.output, error: err.message });
-  }
-}
-
-console.log(JSON.stringify(results, null, 2));  // Print nicely formatted results
+    // Run the Function
+    runUserFunction(userFunction, testCases);
   `;
 }
 
-
-
-// Execute code in Docker and return output
+// Execute the code inside Docker
 async function executeCodeInContainer(code: string, language: string): Promise<string> {
   return new Promise(async (resolve, reject) => {
     try {
       let image = "";
       let cmd: string[] = [];
 
-      // Determine the Docker image and command based on language
       switch (language.toLowerCase()) {
         case "javascript":
           image = "node:14";
@@ -75,26 +88,16 @@ async function executeCodeInContainer(code: string, language: string): Promise<s
           image = "python:3.9";
           cmd = ["python", "-c", code];
           break;
-        case "java":
-          image = "openjdk:11";
-          const fileName = "/app/Main.java";
-          cmd = [
-            "sh",
-            "-c",
-            `echo '${code}' > ${fileName} && javac ${fileName} && java -cp /app Main`,
-          ];
-          break;
         default:
           throw new Error(`Unsupported language: ${language}`);
       }
 
-      // Create the Docker container
       const container = await docker.createContainer({
         Image: image,
         Tty: false,
         Cmd: cmd,
         HostConfig: {
-          AutoRemove: true, // Automatically remove the container after execution
+          AutoRemove: true,
         },
       });
 
@@ -119,14 +122,14 @@ async function executeCodeInContainer(code: string, language: string): Promise<s
       }
 
       await container.wait();
-      resolve(output);
+      resolve(output.trim());
     } catch (error) {
       reject(error);
     }
   });
 }
 
-// Main service logic
+// Main Service Logic
 connectRabbitMQ()
   .then((channel) => {
     console.log("Execution Service is running and connected to RabbitMQ.");
@@ -140,10 +143,9 @@ connectRabbitMQ()
         const { userId, code, contestId, language, testCases } = submission;
 
         try {
-          const wrappedCode = wrapCodeWithTestCases(code, testCases);
-          const result = await executeCodeInContainer(wrappedCode, language);
+          const executionCode = generateExecutionCode(code, testCases);
+          const result = await executeCodeInContainer(executionCode, language);
 
-          // Publish result to Redis Pub/Sub channel
           const resultChannel = `${userId}:${contestId}`;
           await redisPublisher.publish(resultChannel, result);
           console.log("Execution result published:", result);
@@ -159,6 +161,7 @@ connectRabbitMQ()
   })
   .catch(console.error);
 
+// API for result retrieval
 app.use(express.json());
 
 app.get("/result/:userId/:contestId", async (req, res) => {
