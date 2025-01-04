@@ -20,6 +20,7 @@ const runUserFunction = (userFunction, testCases) => {
   for (const testCase of testCases) {
     try {
       let result;
+      
 
       // Determine if the function expects multiple arguments
       if (typeof testCase.input === 'object' && Array.isArray(testCase.input)) {

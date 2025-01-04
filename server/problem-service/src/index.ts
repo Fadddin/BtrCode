@@ -3,9 +3,11 @@
 import express, { Request, Response } from "express";
 import amqp from "amqplib";
 import bodyParser from "body-parser";
+import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 3003;
+app.use(cors());
 
 type TestCase = {
   input: any[];
@@ -37,11 +39,11 @@ connectToRabbitMQ().then((channel) => {
   app.post("/submit", async (req: any, res: any) => {
     const { userId, contestId, code, language, testCases } = req.body;
 
-    if (!testCases || !Array.isArray(testCases)) {
-      return res.status(400).json({
-        message: "Test cases are required and must be an array",
-      });
-    }
+    // if (!testCases || !Array.isArray(testCases)) {
+    //   return res.status(400).json({
+    //     message: "Test cases are required and must be an array",
+    //   });
+    // }
 
     const submission: Submission = {
       userId,

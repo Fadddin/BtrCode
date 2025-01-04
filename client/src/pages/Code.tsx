@@ -1,78 +1,120 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
 
 interface ITestCase {
-    input: string;
-    output: string;
+  input: any[];
+  output: any;
 }
 
 interface IQuestion {
-    _id: string;
-    title: string;
-    description: string;
-    inputFormat: string;
-    outputFormat: string;
-    constraints?: string;
-    testCases: ITestCase[];
-    points: number;
+  _id: string;
+  title: string;
+  description: string;
+  inputFormat: string;
+  outputFormat: string;
+  constraints?: string;
+  hiddenTestCases: ITestCase[];
+  testCases: ITestCase[];
+  points: number;
 }
 
 const Code: React.FC = () => {
   const { contestId, questionId } = useParams<{ contestId: string; questionId: string }>();
-  const [code, setCode] = useState<string>('console.log("Hello, world!");');
-  const [output, setOutput] = useState<string>('');
+  const [code, setCode] = useState<string>('function userFunction(arr) { return arr.map(x => x * 2); }');
+  const [output, setOutput] = useState<string>('Waiting for output...');
   const [language, setLanguage] = useState<string>('javascript');
-  const [questions, setQuestions] = useState<IQuestion[]>([]);
+  const [question, setQuestion] = useState<IQuestion | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const userId = "6713630edf8f30b3f49a837b";
+  const websocketRef = useRef<WebSocket | null>(null); // WebSocket reference
+  const userId = "user123"; // Hardcoded user ID
 
   const handleEditorChange = (value: string | undefined) => {
     setCode(value || '');
   };
 
-  // Fetch questions on component mount
+  // Fetch question on component mount
   useEffect(() => {
-    const fetchQuestions = async () => {
+    const fetchQuestion = async () => {
       try {
-        console.log(questionId);
-        
         const response = await axios.get(`http://localhost:3000/questions/${questionId}`);
-        setQuestions(response.data);
-        console.log(response.data);
+        setQuestion(response.data);
+        console.log(response.data.broilerPlateCode.JavaScript);
+        setCode(response.data.broilerPlateCode.JavaScript);
+
         
+        // setCode(response.data.broilerPlateCode)
         setLoading(false);
       } catch (err) {
-        setError('Failed to fetch questions');
+        setError('Failed to fetch the question');
         setLoading(false);
       }
     };
 
-    fetchQuestions();
-  }, [contestId]);
+    fetchQuestion();
+  }, [questionId]);
 
-  const question = questions
+  // Establish WebSocket connection for receiving output
+  useEffect(() => {
+    const wsUrl = `ws://localhost:8080/?userId=${userId}&contestId=${contestId}`;
+    websocketRef.current = new WebSocket(wsUrl);
 
-  // Run code with the selected language and payload format
+    websocketRef.current.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    websocketRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('WebSocket Message:', data);
+      if (data.result) {
+        setOutput(data.result); // Update output box with WebSocket response
+      } else {
+        setOutput('Received unknown message format.');
+      }
+    };
+
+    websocketRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setOutput('Error with WebSocket connection.');
+    };
+
+    websocketRef.current.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    return () => {
+      websocketRef.current?.close(); // Cleanup WebSocket on unmount
+    };
+  }, [contestId, userId]);
+
+  // Submit the payload via HTTP POST
   const runCode = async () => {
+    if (!question) {
+      setOutput('Error: Question not loaded.');
+      return;
+    }
+
     const payload = {
-      user: userId,
-      contest: contestId,
-      question: questionId,
-      code,
+      userId,
+      contestId: contestId || 'defaultContest',
       language,
+      code,
+      testCases: question.hiddenTestCases, // Use the test cases from the question
     };
 
     try {
-      const response = await axios.post('http://localhost:7070/api/submissions', payload, {
+      setOutput('Submitting code...');
+      const response = await axios.post('http://localhost:3003/submit', payload, {
         headers: { 'Content-Type': 'application/json' },
       });
-      setOutput(response.data.result || 'No output');
+      console.log('HTTP POST response:', response.data);
+      setOutput('Code submitted. Waiting for WebSocket result...');
     } catch (err) {
-      setOutput('Error running the code.');
+      console.error('HTTP POST error:', err);
+      setOutput('Error submitting the code.');
     }
   };
 

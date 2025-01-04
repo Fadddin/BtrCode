@@ -1,51 +1,29 @@
-import React from 'react';
+import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import CodePage from './pages/Code'
 import FunctionWrapper from './pages/TestPage';
-
-const App: React.FC = () => {
-  // 1. Example Function: Sum of Array
-  const sumArray = (arr: number[]) => arr.reduce((acc, val) => acc + val, 0);
-
-  const sumArrayTestCases = [
-    { input: [1, 2, 3, 4], expectedOutput: 10 },  // 1 + 2 + 3 + 4 = 10
-    { input: [0, 0, 0], expectedOutput: 0 },      // Sum of zeros
-    { input: [-1, -2, -3], expectedOutput: -6 },  // Sum of negatives
-    { input: [100, 200, 300], expectedOutput: 600 },  // Large numbers
-  ];
-
-  // 2. Example Function: Concatenate String Array
-  const concatArray = (arr: string[]) => arr.join(' ');
-
-  const concatArrayTestCases = [
-    { input: ['Hello', 'World'], expectedOutput: 'Hello World' },
-    { input: ['React', 'is', 'awesome'], expectedOutput: 'React is awesome' },
-    { input: ['TypeScript', 'rocks'], expectedOutput: 'TypeScript rocks' },
-    { input: [], expectedOutput: '' },  // Empty array should return an empty string
-  ];
-
-  // 3. Example Function: Find Maximum in Array
-  const findMax = (arr: number[]) => Math.max(...arr);
-
-  const maxArrayTestCases = [
-    { input: [1, 2, 3, 4, 5], expectedOutput: 5 },
-    { input: [-10, -20, -3], expectedOutput: -3 },
-    { input: [100, 50, 200], expectedOutput: 200 },
-    { input: [7], expectedOutput: 7 },  // Single-element array
-  ];
+function App() {
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Function Wrapper Test Page</h1>
+    <>
+      <div className='bg-slate-700 text-white font-bold text-2xl'>
+        Hello World
+      </div>
+      <Router>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <Routes>
+          {/* <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/contest/:contestId" element={<ContestPage />} /> */}
+          <Route path="/code/:contestId/:questionId" element={<CodePage/>} />
+          {/* <Route path="/test" element={<FunctionWrapper/>} /> */}
 
-      <h2>1. Sum of Array Function</h2>
-      <FunctionWrapper userFunction={sumArray} testCases={sumArrayTestCases} />
+        </Routes>
+      </div>
+    </Router>
+    </>
+  )
+}
 
-      <h2>2. Concatenate String Array Function</h2>
-      <FunctionWrapper userFunction={concatArray} testCases={concatArrayTestCases} />
-
-      <h2>3. Find Maximum in Array Function</h2>
-      <FunctionWrapper userFunction={findMax} testCases={maxArrayTestCases} />
-    </div>
-  );
-};
-
-export default App;
+export default App
