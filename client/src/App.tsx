@@ -1,7 +1,8 @@
 import './App.css'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import CodePage from './pages/Code'
-import FunctionWrapper from './pages/TestPage';
+import QuestionsPage from './pages/Questions';
+import AddQuestionPage from './pages/AddQuestion';
 function App() {
 
   return (
@@ -12,12 +13,9 @@ function App() {
       <Router>
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <Routes>
-          {/* <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/contest/:contestId" element={<ContestPage />} /> */}
+          <Route path="/" element={<QuestionsPage />} />
+          <Route path="/newQuestion" element={<AddQuestionPage />} />
           <Route path="/code/:contestId/:questionId" element={<CodePage/>} />
-          {/* <Route path="/test" element={<FunctionWrapper/>} /> */}
 
         </Routes>
       </div>
